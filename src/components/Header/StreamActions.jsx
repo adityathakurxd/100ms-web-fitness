@@ -7,6 +7,8 @@ import {
   useCustomEvent,
   useHMSStore,
   useRecordingStreaming,
+  HMSNotificationTypes,
+  selectLocalPeer,
 } from "@100mslive/react-sdk";
 import { RecordIcon, WrenchIcon } from "@100mslive/react-icons";
 import {
@@ -251,7 +253,6 @@ export const StreamActions = () => {
   const isMobile = useMedia(cssConfig.media.md);
   const { isStreamingOn } = useRecordingStreaming();
   const notification = useHMSNotifications();
-
   const [seconds, setSeconds] = useState(30);
   const [isRunning, setIsRunning] = useState(false);
 
@@ -260,10 +261,23 @@ export const StreamActions = () => {
       return;
     }
 
-    console.log("notification type", notification.type);
-
-    // The data in notification depends on the notification type
-    console.log("data", notification.data);
+    if (
+      notification.type === HMSNotificationTypes.NEW_MESSAGE &&
+      notification.data?.type === "TIMER_STARTED"
+    ) {
+      if (!isRunning) {
+        setIsRunning(true);
+      }
+    }
+    if (
+      notification.type === HMSNotificationTypes.NEW_MESSAGE &&
+      notification.data?.type === "TIMER_RESET"
+    ) {
+      //Timer Started notification received
+      if (isRunning) {
+        resetTimer();
+      }
+    }
   }, [notification]);
 
   const onEvent = useCallback(msg => {
