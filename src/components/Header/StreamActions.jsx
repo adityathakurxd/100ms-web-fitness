@@ -263,30 +263,26 @@ export const StreamActions = () => {
 
     if (
       notification.type === HMSNotificationTypes.NEW_MESSAGE &&
-      notification.data?.type === "TIMER_STARTED"
+      notification.data?.type === "TIMER_DATA"
     ) {
-      if (!isRunning) {
+      const message = notification.data?.message
+        ? JSON.parse(notification.data?.message)
+        : {};
+      if (message.timer === "started" && !isRunning) {
         setIsRunning(true);
       }
-    }
-    if (
-      notification.type === HMSNotificationTypes.NEW_MESSAGE &&
-      notification.data?.type === "TIMER_RESET"
-    ) {
-      //Timer Started notification received
-      if (isRunning) {
+      if (message.timer === "reset" && isRunning) {
         resetTimer();
       }
     }
   }, [notification]);
 
   const onEvent = useCallback(msg => {
-    console.log(msg); // {emoji: "🚀"}
-    // show emoji reactions on UI
+    console.log(msg);
   }, []);
 
   const { sendEvent } = useCustomEvent({
-    type: "TIMER_STARTED",
+    type: "TIMER_DATA",
     onEvent: onEvent,
   });
 
@@ -305,13 +301,14 @@ export const StreamActions = () => {
   }, [isRunning, seconds]);
 
   const startTimer = () => {
-    sendEvent({ emoji: "🚀" });
+    sendEvent({ timer: "started" });
     if (!isRunning) {
       setIsRunning(true);
     }
   };
 
   const resetTimer = () => {
+    sendEvent({ timer: "reset" });
     setSeconds(30);
     setIsRunning(false);
   };
