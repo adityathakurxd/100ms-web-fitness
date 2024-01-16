@@ -1,9 +1,10 @@
-import { Fragment, useState } from "react";
+import { Fragment, useState, useEffect, useCallback } from "react";
 import { useMedia } from "react-use";
 import {
   selectIsConnectedToRoom,
   selectPermissions,
   useHMSActions,
+  useCustomEvent,
   useHMSStore,
   useRecordingStreaming,
 } from "@100mslive/react-sdk";
@@ -30,6 +31,7 @@ import {
   RTMP_RECORD_DEFAULT_RESOLUTION,
   SIDE_PANE_OPTIONS,
 } from "../../common/constants";
+import { useHMSNotifications } from "@100mslive/react-sdk";
 
 export const LiveStatus = () => {
   const { isHLSRunning, isRTMPRunning } = useRecordingStreaming();
@@ -248,9 +250,71 @@ export const StreamActions = () => {
   const permissions = useHMSStore(selectPermissions);
   const isMobile = useMedia(cssConfig.media.md);
   const { isStreamingOn } = useRecordingStreaming();
+  const notification = useHMSNotifications();
+
+  const [seconds, setSeconds] = useState(30);
+  const [isRunning, setIsRunning] = useState(false);
+
+  useEffect(() => {
+    if (!notification) {
+      return;
+    }
+
+    console.log("notification type", notification.type);
+
+    // The data in notification depends on the notification type
+    console.log("data", notification.data);
+  }, [notification]);
+
+  const onEvent = useCallback(msg => {
+    console.log(msg); // {emoji: "🚀"}
+    // show emoji reactions on UI
+  }, []);
+
+  const { sendEvent } = useCustomEvent({
+    type: "TIMER_STARTED",
+    onEvent: onEvent,
+  });
+
+  useEffect(() => {
+    let timer;
+
+    if (isRunning && seconds > 0) {
+      timer = setInterval(() => {
+        setSeconds(prevSeconds => prevSeconds - 1);
+      }, 1000);
+    }
+
+    return () => {
+      clearInterval(timer);
+    };
+  }, [isRunning, seconds]);
+
+  const startTimer = () => {
+    sendEvent({ emoji: "🚀" });
+    if (!isRunning) {
+      setIsRunning(true);
+    }
+  };
+
+  const resetTimer = () => {
+    setSeconds(30);
+    setIsRunning(false);
+  };
 
   return (
     <Flex align="center" css={{ gap: "$4" }}>
+      {isConnected && (
+        <Button onClick={startTimer} disabled={isRunning}>
+          {!isRunning && <>Start Timer</>}
+          {isRunning && <>00:{seconds}</>}
+        </Button>
+      )}
+      {isConnected && isRunning && (
+        <Button onClick={resetTimer} disabled={!isRunning}>
+          Reset Timer
+        </Button>
+      )}
       <AdditionalRoomState />
       <Flex align="center" css={{ gap: "$4", "@md": { display: "none" } }}>
         <LiveStatus />
